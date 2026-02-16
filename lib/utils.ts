@@ -1,23 +1,51 @@
-/**
- * Validates a URL string using the WHATWG URL parser.
- * Returns the normalized URL on success, or null on failure.
- */
 export function validateAndNormalizeUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  
+  // Add https:// if no protocol given
+  const withProtocol =
+    trimmed.startsWith("http://") || trimmed.startsWith("https://")
+      ? trimmed
+      : `https://${trimmed}`;
+
   try {
-    const url = new URL(input.trim());
-    // Only allow http and https protocols
+    const url = new URL(withProtocol);
+
+    // Must be http or https
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       return null;
     }
-    return url.toString();
-  } catch {
-    // Try adding https:// prefix if the user forgot it
-    try {
-      const url = new URL(`https://${input.trim()}`);
-      return url.toString();
-    } catch {
+
+    const hostname = url.hostname;
+
+    // Must have a dot in the hostname (e.g. google.com, not just "google")
+    if (!hostname.includes(".")) {
       return null;
     }
+
+    // Must not start or end with a dot
+    if (hostname.startsWith(".") || hostname.endsWith(".")) {
+      return null;
+    }
+
+    // TLD (part after last dot) must be at least 2 characters
+    // This blocks "hi", "hello", "test" etc.
+    const parts = hostname.split(".");
+    const tld = parts[parts.length - 1];
+    if (tld.length < 2) {
+      return null;
+    }
+
+    // Hostname must have at least 1 character before the TLD
+    const domainPart = parts[parts.length - 2];
+    if (!domainPart || domainPart.length < 1) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
@@ -32,9 +60,7 @@ export function getDomain(url: string): string {
   }
 }
 
-/**
- * Format a relative time string (e.g., "2 hours ago").
- */
+
 export function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();

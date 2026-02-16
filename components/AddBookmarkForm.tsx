@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { validateAndNormalizeUrl } from "@/lib/utils";
-import type { Bookmark } from "@/lib/types";
+import {useState} from "react";
+import {createClient} from "@/lib/supabase/client";
+import {validateAndNormalizeUrl} from "@/lib/utils";
+import type {Bookmark} from "@/lib/types";
 
 interface AddBookmarkFormProps {
   userId: string;
-  onAdd: (bookmark: Bookmark) => void;  
+  onAdd: (bookmark: Bookmark) => void;
+  existingBookmarks: Bookmark[]; 
 }
 
-export default function AddBookmarkForm({ userId, onAdd  }: AddBookmarkFormProps) {
+export default function AddBookmarkForm({userId, onAdd, existingBookmarks, }: AddBookmarkFormProps) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [titleError, setTitleError] = useState("");
@@ -18,32 +19,57 @@ export default function AddBookmarkForm({ userId, onAdd  }: AddBookmarkFormProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successFlash, setSuccessFlash] = useState(false);
 
-  const validate = () => {
-    let valid = true;
+ const validate = () => {
+  let valid = true;
 
-    if (!title.trim()) {
-      setTitleError("Title is required");
-      valid = false;
-    } else if (title.trim().length > 200) {
-      setTitleError("Title must be under 200 characters");
+ 
+  if (!title.trim()) {
+    setTitleError("Title is required");
+    valid = false;
+  } else if (title.trim().length > 200) {
+    setTitleError("Title must be under 200 characters");
+    valid = false;
+  } else {
+    
+    const duplicateTitle = existingBookmarks.find(
+      (b) => b.title.toLowerCase() === title.trim().toLowerCase()
+    );
+    if (duplicateTitle) {
+      setTitleError(`A bookmark named "${title.trim()}" already exists`);
       valid = false;
     } else {
       setTitleError("");
     }
+  }
 
-    const normalizedUrl = validateAndNormalizeUrl(url);
-    if (!url.trim()) {
-      setUrlError("URL is required");
-      valid = false;
-    } else if (!normalizedUrl) {
-      setUrlError("Please enter a valid URL (e.g. https://example.com)");
+
+  const normalizedUrl = validateAndNormalizeUrl(url);
+
+  if (!url.trim()) {
+    setUrlError("URL is required");
+    valid = false;
+  } else if (!normalizedUrl) {
+    setUrlError(
+      "Please enter a valid URL with a domain (e.g. google.com or https://example.com)"
+    );
+    valid = false;
+  } else {
+    
+    const duplicateUrl = existingBookmarks.find(
+      (b) => b.url === normalizedUrl
+    );
+    if (duplicateUrl) {
+      setUrlError(
+        `This URL is already saved as "${duplicateUrl.title}"`
+      );
       valid = false;
     } else {
       setUrlError("");
     }
+  }
 
-    return valid;
-  };
+  return valid;
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +80,7 @@ export default function AddBookmarkForm({ userId, onAdd  }: AddBookmarkFormProps
     setIsSubmitting(true);
 
     const supabase = createClient();
-    const { error } = await supabase.from("bookmarks").insert({
+    const {error} = await supabase.from("bookmarks").insert({
       user_id: userId,
       title: title.trim(),
       url: normalizedUrl,
@@ -67,17 +93,17 @@ export default function AddBookmarkForm({ userId, onAdd  }: AddBookmarkFormProps
       return;
     }
 
-    const { data: newBookmark } = await supabase
-  .from("bookmarks")
-  .select("*")
-  .eq("user_id", userId)
-  .order("created_at", { ascending: false })
-  .limit(1)
-  .single();
+    const {data: newBookmark} = await supabase
+      .from("bookmarks")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", {ascending: false})
+      .limit(1)
+      .single();
 
-if (newBookmark) {
-  onAdd(newBookmark as Bookmark);
-}
+    if (newBookmark) {
+      onAdd(newBookmark as Bookmark);
+    }
 
     setTitle("");
     setUrl("");
@@ -122,7 +148,7 @@ if (newBookmark) {
           </svg>
           <span
             className="text-sm font-semibold"
-            style={{ color: "var(--text-primary)" }}
+            style={{color: "var(--text-primary)"}}
           >
             Add Bookmark
           </span>
@@ -134,7 +160,7 @@ if (newBookmark) {
             <label
               htmlFor="bookmark-title"
               className="block text-xs font-medium mb-1.5"
-              style={{ color: "var(--text-secondary)" }}
+              style={{color: "var(--text-secondary)"}}
             >
               Title
             </label>
@@ -157,7 +183,7 @@ if (newBookmark) {
               <p
                 id="title-error"
                 className="mt-1.5 text-xs"
-                style={{ color: "#f87171" }}
+                style={{color: "#f87171"}}
                 role="alert"
               >
                 {titleError}
@@ -170,7 +196,7 @@ if (newBookmark) {
             <label
               htmlFor="bookmark-url"
               className="block text-xs font-medium mb-1.5"
-              style={{ color: "var(--text-secondary)" }}
+              style={{color: "var(--text-secondary)"}}
             >
               URL
             </label>
@@ -192,7 +218,7 @@ if (newBookmark) {
               <p
                 id="url-error"
                 className="mt-1.5 text-xs"
-                style={{ color: "#f87171" }}
+                style={{color: "#f87171"}}
                 role="alert"
               >
                 {urlError}

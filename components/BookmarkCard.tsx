@@ -6,6 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { getDomain, formatRelativeTime, truncate } from "@/lib/utils";
 import type { Bookmark } from "@/lib/types";
 
+// interface BookmarkCardProps {
+//   bookmark: Bookmark;
+//   onDeleted: (id: string) => void;
+// }
+
+// Update the interface at the top
 interface BookmarkCardProps {
   bookmark: Bookmark;
   onDeleted: (id: string) => void;

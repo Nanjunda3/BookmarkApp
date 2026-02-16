@@ -6,15 +6,17 @@ import BookmarkCard from "./BookmarkCard";
 import type {Bookmark} from "@/lib/types";
 
 interface BookmarkListProps {
-  bookmarks: Bookmark[];           // ← receives from parent
-  setBookmarks: React.Dispatch<React.SetStateAction<Bookmark[]>>;  // ← from parent
+  bookmarks: Bookmark[];           
+  setBookmarks: React.Dispatch<React.SetStateAction<Bookmark[]>>;  
   userId: string;
+  onDelete: (id: string) => void;
 }
 
 export default function BookmarkList({
   bookmarks,
   setBookmarks,
   userId,
+  onDelete, 
 }: BookmarkListProps) {
 
   const handleDeleted = useCallback((id: string) => {
@@ -32,38 +34,32 @@ export default function BookmarkList({
           event: "*",
           schema: "public",
           table: "bookmarks",
-          filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newBookmark = payload.new as Bookmark;
-            setBookmarks((prev) => {
-              // Prevent duplicates (optimistic updates may already have added it)
-              if (prev.find((b) => b.id === newBookmark.id)) return prev;
-              return [newBookmark, ...prev];
-            });
-          }
-
-          if (payload.eventType === "DELETE") {
-            setBookmarks((prev) =>
-              prev.filter((b) => b.id !== (payload.old as Bookmark).id),
-            );
-          }
-
-          if (payload.eventType === "UPDATE") {
-            const updatedBookmark = payload.new as Bookmark;
-            setBookmarks((prev) =>
-              prev.map((b) =>
-                b.id === updatedBookmark.id ? updatedBookmark : b,
-              ),
-            );
-          }
-        },
-      )
+         
       
-      .subscribe((status) => {
-        console.log("🔴 Realtime status:", status);
-      });
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newBookmark = payload.new as Bookmark
+          // ✅ Add manual filter check here instead
+          if (newBookmark.user_id !== userId) return
+          setBookmarks((prev) => {
+            if (prev.find((b) => b.id === newBookmark.id)) return prev
+            return [newBookmark, ...prev]
+          })
+        }
+        if (payload.eventType === 'DELETE') {
+          const deletedBookmark = payload.old as Bookmark
+          // ✅ Add manual filter check here too
+          if (deletedBookmark.user_id !== userId) return
+          setBookmarks((prev) =>
+            prev.filter((b) => b.id !== deletedBookmark.id)
+          )
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log('Realtime status:', status)
+    })
 
     return () => {
       supabase.removeChannel(channel);
@@ -79,7 +75,7 @@ export default function BookmarkList({
           border: "1px dashed var(--border-default)",
         }}
       >
-        {/* Illustration */}
+      
         <div
           className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5"
           style={{
@@ -134,7 +130,7 @@ export default function BookmarkList({
           <BookmarkCard
             key={bookmark.id}
             bookmark={bookmark}
-            onDeleted={handleDeleted}
+            onDeleted={onDelete}
           />
         ))}
       </div>
