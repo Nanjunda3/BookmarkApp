@@ -1,6 +1,6 @@
 # 🔖 Markd — Smart Bookmark Manager
 
-> **Live URL:**  ← _Replace with your Vercel URL after deployment_
+> **Live URL:** https://bookmark-app-drab.vercel.app/login ← _Replace with your Vercel URL after deployment_
 
 A fast, private bookmark manager built with Next.js App Router, Supabase, and Tailwind CSS. Bookmarks sync in real-time across all open tabs without a page refresh.
 
